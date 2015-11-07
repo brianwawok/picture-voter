@@ -21,7 +21,7 @@ Where XXXXXXXXXX is your dropbox token.
 Other interesting command line parameters you want to override, and their default values:
 
 Parameter Key | Default Value
--------------------------------
+--------------|----------------
 http.interface | "localhost"
 http.port | 8080
 dropbox.host | "https://api.dropboxapi.com"
