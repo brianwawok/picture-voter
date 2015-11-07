@@ -44,7 +44,7 @@ trait DatabaseSupport {
   )
 
   implicit val phoneNumberColumnType = MappedColumnType.base[PhoneNumber, String](
-    pn => pn.toString,
+    pn => pn.phoneNumber.toString,
     s => new PhoneNumber(s)
   )
 }

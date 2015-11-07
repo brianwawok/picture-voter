@@ -45,14 +45,16 @@ import akka.stream.{Materializer, ActorMaterializer}
 
 import scala.concurrent.{ExecutionContextExecutor, Future, ExecutionContext, Await}
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 
 trait Service extends JsonSupport with DatabaseService {
 
   implicit val system: ActorSystem
-  implicit def executor: ExecutionContextExecutor
-  implicit val materializer: Materializer
 
+  implicit def executor: ExecutionContextExecutor
+
+  implicit val materializer: Materializer
 
 
   def routes() = {
@@ -60,12 +62,33 @@ trait Service extends JsonSupport with DatabaseService {
       post {
         entity(as[InboundRequest]) { inboundRequest =>
           complete {
-              inboundRequest.`type` match {
-                case InBoundRequestType.InboundText =>
-                  "Success:" + inboundRequest.toString + ":" + inboundRequest.toJson
-                case _ =>
-                  "Success:" + inboundRequest.toString + ":" + inboundRequest.toJson
-              }
+            inboundRequest.`type` match {
+              case InBoundRequestType.InboundText =>
+                findPictureIdForNameAndTarget(inboundRequest.payload, inboundRequest.toNumber).flatMap {
+                  case Some(pictureId) =>
+                    voteForPicture(pictureId, inboundRequest.fromNumber, inboundRequest.toNumber).map(voteSucces => {
+                      if(voteSucces) {
+                        s"Vote submitted for '${inboundRequest.payload}'"
+                      } else {
+                        s"Not able to submit vote for '${inboundRequest.payload}', perhaps you already voted for this image?"
+                      }
+                    })
+                  case _ =>
+                    Future.successful(s"Unable to find picture '${inboundRequest.payload}' to vote on")
+                }
+
+              case InBoundRequestType.InboundMedia =>
+                val newPicture = Picture(0, inboundRequest.payload, inboundRequest.fromNumber, inboundRequest.toNumber)
+                saveNewPicture(newPicture).map {
+                  case true =>
+                    s"New picture '${inboundRequest.payload}' added to service"
+                  case fasle =>
+                    s"Picture '${inboundRequest.payload}' already exists"
+                }
+
+              case _ =>
+                "Unknown request:" + inboundRequest.toString + ":" + inboundRequest.toJson
+            }
           }
 
 
@@ -74,9 +97,11 @@ trait Service extends JsonSupport with DatabaseService {
     } ~
       path("report") {
         get {
-          complete {
-            voteCount().map {
-              case count => s"Report coming soon! Current count: $count"
+          entity(as[PhoneNumber]) { targetPhoneNumber =>
+            complete {
+              getAllVoteCounts(targetPhoneNumber).map {
+                case result => result.toJson
+              }
             }
           }
 

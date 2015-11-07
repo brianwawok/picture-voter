@@ -28,6 +28,8 @@ package com.wawok
 
 import java.time.LocalDateTime
 
+import com.sun.glass.ui.InvokeLaterDispatcher.InvokeLaterSubmitter
+
 
 /**
   * Created by Brian Wawok on 11/6/2015.
@@ -58,9 +60,10 @@ object Models {
   case class InboundRequest(`type`: InBoundRequestType.Value, payload: String, fromNumber: PhoneNumber, toNumber: PhoneNumber)
 
 
-  case class Picture(pictureId : Long, name : String, submitter : PhoneNumber)
+  case class Picture(pictureId : Long, name : String, submitterPhone : PhoneNumber, targetPhone: PhoneNumber)
 
 
-  case class Vote(pictureId : Long, phoneNumber: PhoneNumber, voteTime : LocalDateTime)
+  case class Vote(targetPhone: PhoneNumber, submitterPhone: PhoneNumber, pictureId : Long, voteTime : LocalDateTime)
 
 }
+

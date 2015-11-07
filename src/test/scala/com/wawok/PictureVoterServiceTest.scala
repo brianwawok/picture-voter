@@ -50,6 +50,12 @@ import scala.concurrent.Await
 class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRouteTest with JsonSupport {
 
 
+  val targetPhoneNumber = PhoneNumber("+15551234567")
+
+  val submitter1PhoneNumber = PhoneNumber("+15552345698")
+  val submitter2PhoneNumber = PhoneNumber("+15552345699")
+  val image_1= "http://cat.jpg"
+  val image_2= "http://dog.jpg"
 
   object serviceTest extends Service {
     implicit val system = ActorSystem("my-system")
@@ -73,12 +79,6 @@ class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRoute
     }
   }
 
-  it should "always respond to a get request to report" in {
-    Get("/report") ~> route  ~> check {
-      handled shouldBe true
-    }
-  }
-
   it should "give an unsupported media type exception if a good request was not sent as json" in {
     Post("/event", """{ "type": "inboundText", "payload": "Hello", "fromNumber": "+14444444", "toNumber": "+15555555" }""") ~> Route.seal(route) ~> check {
       status shouldEqual  StatusCodes.UnsupportedMediaType
@@ -86,7 +86,89 @@ class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRoute
     }
   }
 
+  it should "our initial report should be an empty json string" in {
+    Get("/report", targetPhoneNumber) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual "[]"
+    }
+  }
 
+ 
+  val picture1 = InboundRequest(InBoundRequestType.InboundMedia, image_1, submitter1PhoneNumber, targetPhoneNumber )
+  it should "happy allow us to add a new picture to the service" in {
+    Post("/event", picture1) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual s"New picture '$image_1' added to service"
+    }
+  }
+
+  it should "tell us the picture already exists if we try to add it again" in {
+    Post("/event", picture1) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual s"Picture '$image_1' already exists"
+    }
+  }
+
+  it should "still give us a blank report without any votes cast" in {
+    Get("/report", targetPhoneNumber) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual "[]"
+    }
+  }
+
+  val vote1 = InboundRequest(InBoundRequestType.InboundText, image_1, submitter1PhoneNumber, targetPhoneNumber )
+  it should "save vote1 to the database" in {
+    Post("/event", vote1) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual s"Vote submitted for '$image_1'"
+    }
+  }
+
+  it should "now give us a report with image_1 in the lead" in {
+    Get("/report", targetPhoneNumber) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual s"""[["$image_1", 1]]"""
+    }
+  }
+
+  it should "not allow us to save the same vote1 to the database" in {
+    Post("/event", vote1) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual s"Not able to submit vote for '$image_1', perhaps you already voted for this image?"
+    }
+  }
+
+  val picture2 = InboundRequest(InBoundRequestType.InboundMedia, image_2, submitter1PhoneNumber, targetPhoneNumber )
+  it should "happy allow us to add a second  to the service" in {
+    Post("/event", picture2) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual s"New picture '$image_2' added to service"
+    }
+  }
+
+
+  val vote2 = InboundRequest(InBoundRequestType.InboundText, image_2, submitter1PhoneNumber, targetPhoneNumber )
+  it should "save vote2 to the database" in {
+    Post("/event", vote2) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual s"Vote submitted for '$image_2'"
+    }
+  }
+
+  val vote3 = InboundRequest(InBoundRequestType.InboundText, image_2, submitter2PhoneNumber, targetPhoneNumber )
+  it should "save vote3 to the database" in {
+    Post("/event", vote3) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual s"Vote submitted for '$image_2'"
+    }
+  }
+
+  it should "now give us a report with image_2 in the lead and image_1 with 1 vote" in {
+    Get("/report", targetPhoneNumber) ~> route  ~> check {
+      handled shouldBe true
+      responseAs[String] shouldEqual s"""[["$image_2", 2], ["$image_1", 1]]"""
+    }
+  }
 
 
 

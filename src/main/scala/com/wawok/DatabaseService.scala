@@ -33,16 +33,17 @@ package com.wawok
 import java.time.LocalDateTime
 
 import com.wawok.Models._
+import org.h2.jdbc.JdbcSQLException
 import org.slf4j.LoggerFactory
 import slick.driver.H2Driver.api._
 import slick.jdbc.meta.MTable
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
+import scala.util.Try
 
 
-
-trait DatabaseService {
+trait DatabaseService extends DatabaseSupport {
 
   val db: Database
 
@@ -71,31 +72,78 @@ trait DatabaseService {
 
   }
 
-  def voteCount(): Future[Int] = {
-    db.run(
-      votes.length.result
-    )
-  }
-
 
   /*
+  this is kind of absurd, go slick
 
-  def voteForPicture(name : String, voterPhone: PhoneNumber) : Future[Boolean] = {
+  select p.name, count(*)
+  from votes v, pictures p
+  where v.picture_id = p.picture_id
+  and v.target_phone = ?
+  and p.target_phone = ?
+  order by count(*) desc
+*/
+  def getAllVoteCounts(targetPhone: PhoneNumber): Future[Seq[(String, Int)]] = {
     db.run(
-       pictures.filter(_.name === name).map(_.pictureId).take(1).result.headOption.flatMap(idOpt => {
-         idOpt.map(id => {
-           val vote = Vote(voterPhone, id, LocalDateTime.now())
-           (votes += vote).map(insertResult => {
-             insertResult > 0
-           })
-         })
-
-
-       })
-
+      (for {
+        v <- votes.filter(_.targetPhone === targetPhone)
+        p <- pictures.filter(_.targetPhone === targetPhone) if v.pictureId === p.pictureId
+      } yield (v, p))
+        .groupBy {
+          case (v, p) => p.name
+        }.map {
+        case ((name), list) =>
+          (name, list.length)
+      }.sortBy(_._2.desc)
+        .result
     )
   }
-  */
+
+
+  //save new picture, return true if success or false if fail whale
+  def saveNewPicture(picture: Picture): Future[Boolean] = {
+
+    val cleanPicture = picture.copy(pictureId = 0)
+    db.run(
+      pictures += cleanPicture
+    ).map(res => res > 0)
+      .recover {
+        //TODO maybe tease out this was a dupe FK exception and not something else
+        case ex: java.sql.SQLException => {
+          logger.warn("Save new picture exception", ex)
+          false
+        }
+      }
+  }
+
+  def findPictureIdForNameAndTarget(name: String, targetPhoneNumber: PhoneNumber): Future[Option[Long]] = {
+    db.run(
+      pictures
+        .filter(_.name === name)
+        .filter(_.targetPhone === targetPhoneNumber)
+        .map(_.pictureId)
+        .take(1)
+        .result
+        .headOption
+    )
+  }
+
+  //insert a vote, return true if it was a success or false otherwise
+  def voteForPicture(pictureId : Long, submitterPhone : PhoneNumber, targetPhone: PhoneNumber) : Future[Boolean] = {
+    val vote = Vote(targetPhone, submitterPhone, pictureId, LocalDateTime.now())
+    db.run(
+      votes += vote
+    ).map(_ > 0)
+      .recover {
+        //TODO maybe tease out this was a dupe FK exception and not something else
+        case ex: java.sql.SQLException => {
+          logger.warn("Vote for picture exception", ex)
+          false
+        }
+      }
+  }
+
+
 
 }
 
@@ -104,15 +152,17 @@ object Votes extends DatabaseSupport {
 
   class Votes(tag: Tag) extends Table[Vote](tag, "votes") {
 
-    def pictureId = column[Long]("picture_id")
+    def targetPhone = column[PhoneNumber]("target_phone")
 
-    def phoneNumber = column[PhoneNumber]("phone_number")
+    def submitterPhone = column[PhoneNumber]("submitter_phone")
+
+    def pictureId = column[Long]("picture_id")
 
     def voteTime = column[LocalDateTime]("vote_time")
 
-    def pk = primaryKey("vote_pk", (pictureId, phoneNumber))
+    def pk = primaryKey("vote_pk", (targetPhone, submitterPhone, pictureId))
 
-    def * = (pictureId, phoneNumber, voteTime) <>(Vote.tupled, Vote.unapply)
+    def * = (targetPhone, submitterPhone, pictureId, voteTime) <>(Vote.tupled, Vote.unapply)
 
     def fk = foreignKey("picture_fk", pictureId, Pictures.pictures)(_.pictureId)
 
@@ -131,10 +181,14 @@ object Pictures extends DatabaseSupport {
 
     def name = column[String]("name")
 
-    def submitter = column[PhoneNumber]("submitter")
+    def submitterPhone = column[PhoneNumber]("submitter_phone")
+
+    def targetPhone = column[PhoneNumber]("target_phone")
+
+    def uniqueNameForTarget = index("unique_name_for_target", (name, targetPhone), unique = true)
 
 
-    def * = (pictureId, name, submitter) <>(Picture.tupled, Picture.unapply)
+    def * = (pictureId, name, submitterPhone, targetPhone) <>(Picture.tupled, Picture.unapply)
 
 
   }
