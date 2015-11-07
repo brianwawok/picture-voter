@@ -28,7 +28,6 @@ package com.wawok
 
 import java.time.LocalDateTime
 
-import com.sun.glass.ui.InvokeLaterDispatcher.InvokeLaterSubmitter
 
 
 /**
@@ -64,6 +63,8 @@ object Models {
 
 
   case class Vote(targetPhone: PhoneNumber, submitterPhone: PhoneNumber, pictureId : Long, voteTime : LocalDateTime)
+
+  case class DropboxSaveUrlRequest(path: String, url: String)
 
 }
 

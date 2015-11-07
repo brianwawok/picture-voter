@@ -33,14 +33,12 @@ package com.wawok
 import java.time.LocalDateTime
 
 import com.wawok.Models._
-import org.h2.jdbc.JdbcSQLException
 import org.slf4j.LoggerFactory
 import slick.driver.H2Driver.api._
 import slick.jdbc.meta.MTable
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
-import scala.util.Try
 
 
 trait DatabaseService extends DatabaseSupport {
@@ -109,10 +107,9 @@ trait DatabaseService extends DatabaseSupport {
     ).map(res => res > 0)
       .recover {
         //TODO maybe tease out this was a dupe FK exception and not something else
-        case ex: java.sql.SQLException => {
+        case ex: java.sql.SQLException =>
           logger.warn("Save new picture exception", ex)
           false
-        }
       }
   }
 
@@ -136,10 +133,9 @@ trait DatabaseService extends DatabaseSupport {
     ).map(_ > 0)
       .recover {
         //TODO maybe tease out this was a dupe FK exception and not something else
-        case ex: java.sql.SQLException => {
+        case ex: java.sql.SQLException =>
           logger.warn("Vote for picture exception", ex)
           false
-        }
       }
   }
 

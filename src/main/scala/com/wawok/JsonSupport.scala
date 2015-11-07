@@ -63,5 +63,6 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
 
   implicit val inboundRequestFormat = jsonFormat4(InboundRequest)
+  implicit val dropboxSaveUrlFormat = jsonFormat2(DropboxSaveUrlRequest)
 
 }

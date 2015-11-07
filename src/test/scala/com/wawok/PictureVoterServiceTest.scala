@@ -34,17 +34,14 @@ package com.wawok
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.wawok.Models._
-import com.wawok.PictureVoterService._
-import org.scalatest.{FlatSpec, Matchers, WordSpec}
+import org.scalatest.{FlatSpec, Matchers}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.server._
-import Directives._
-import spray.json.JsString
 import slick.driver.H2Driver.api._
 import scala.concurrent.duration._
 
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 
 
 class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRouteTest with JsonSupport {
@@ -54,14 +51,23 @@ class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRoute
 
   val submitter1PhoneNumber = PhoneNumber("+15552345698")
   val submitter2PhoneNumber = PhoneNumber("+15552345699")
-  val image_1= "http://cat.jpg"
-  val image_2= "http://dog.jpg"
+  val url_1 = "http://cat.jpg"
+  val name_1 = "cat.jpg"
+  val url_2 = "http://dog.jpg"
+  val name_2 = "dog.jpg"
 
-  object serviceTest extends Service {
+  trait FakeDropboxSaver extends DropboxSaver {
+    override def saveUrl(url: String): Future[Boolean] = {
+      Future.successful(true)
+    }
+  }
+
+  object serviceTest extends Service with FakeDropboxSaver {
     implicit val system = ActorSystem("my-system")
     implicit val executor = system.dispatcher
     implicit val materializer = ActorMaterializer()
     override val db = Database.forConfig("h2-test-config")
+
   }
 
   Await.result(serviceTest.setup(), 5.minutes)
@@ -74,104 +80,101 @@ class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRoute
   }
 
   it should "not respond to a get request to event either" in {
-    Get("/event") ~> route  ~> check {
+    Get("/event") ~> route ~> check {
       handled shouldBe false
     }
   }
 
   it should "give an unsupported media type exception if a good request was not sent as json" in {
     Post("/event", """{ "type": "inboundText", "payload": "Hello", "fromNumber": "+14444444", "toNumber": "+15555555" }""") ~> Route.seal(route) ~> check {
-      status shouldEqual  StatusCodes.UnsupportedMediaType
+      status shouldEqual StatusCodes.UnsupportedMediaType
       responseAs[String] shouldEqual "The request's Content-Type is not supported. Expected:\napplication/json"
     }
   }
 
   it should "our initial report should be an empty json string" in {
-    Get("/report", targetPhoneNumber) ~> route  ~> check {
+    Get("/report", targetPhoneNumber) ~> route ~> check {
       handled shouldBe true
       responseAs[String] shouldEqual "[]"
     }
   }
 
- 
-  val picture1 = InboundRequest(InBoundRequestType.InboundMedia, image_1, submitter1PhoneNumber, targetPhoneNumber )
+
+  val picture1 = InboundRequest(InBoundRequestType.InboundMedia, url_1, submitter1PhoneNumber, targetPhoneNumber)
   it should "happy allow us to add a new picture to the service" in {
-    Post("/event", picture1) ~> route  ~> check {
+    Post("/event", picture1) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"New picture '$image_1' added to service"
+      responseAs[String] shouldEqual s"New picture '$name_1' added to service"
     }
   }
 
   it should "tell us the picture already exists if we try to add it again" in {
-    Post("/event", picture1) ~> route  ~> check {
+    Post("/event", picture1) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"Picture '$image_1' already exists"
+      responseAs[String] shouldEqual s"Picture '$name_1' already exists"
     }
   }
 
   it should "still give us a blank report without any votes cast" in {
-    Get("/report", targetPhoneNumber) ~> route  ~> check {
+    Get("/report", targetPhoneNumber) ~> route ~> check {
       handled shouldBe true
       responseAs[String] shouldEqual "[]"
     }
   }
 
-  val vote1 = InboundRequest(InBoundRequestType.InboundText, image_1, submitter1PhoneNumber, targetPhoneNumber )
+  val vote1 = InboundRequest(InBoundRequestType.InboundText, name_1, submitter1PhoneNumber, targetPhoneNumber)
   it should "save vote1 to the database" in {
-    Post("/event", vote1) ~> route  ~> check {
+    Post("/event", vote1) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"Vote submitted for '$image_1'"
+      responseAs[String] shouldEqual s"Vote submitted for '$name_1'"
     }
   }
 
   it should "now give us a report with image_1 in the lead" in {
-    Get("/report", targetPhoneNumber) ~> route  ~> check {
+    Get("/report", targetPhoneNumber) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"""[["$image_1", 1]]"""
+      responseAs[String] shouldEqual s"""[["$name_1", 1]]"""
     }
   }
 
   it should "not allow us to save the same vote1 to the database" in {
-    Post("/event", vote1) ~> route  ~> check {
+    Post("/event", vote1) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"Not able to submit vote for '$image_1', perhaps you already voted for this image?"
+      responseAs[String] shouldEqual s"Not able to submit vote for '$name_1', perhaps you already voted for this image?"
     }
   }
 
-  val picture2 = InboundRequest(InBoundRequestType.InboundMedia, image_2, submitter1PhoneNumber, targetPhoneNumber )
+  val picture2 = InboundRequest(InBoundRequestType.InboundMedia, url_2, submitter1PhoneNumber, targetPhoneNumber)
   it should "happy allow us to add a second  to the service" in {
-    Post("/event", picture2) ~> route  ~> check {
+    Post("/event", picture2) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"New picture '$image_2' added to service"
+      responseAs[String] shouldEqual s"New picture '$name_2' added to service"
     }
   }
 
 
-  val vote2 = InboundRequest(InBoundRequestType.InboundText, image_2, submitter1PhoneNumber, targetPhoneNumber )
+  val vote2 = InboundRequest(InBoundRequestType.InboundText, name_2, submitter1PhoneNumber, targetPhoneNumber)
   it should "save vote2 to the database" in {
-    Post("/event", vote2) ~> route  ~> check {
+    Post("/event", vote2) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"Vote submitted for '$image_2'"
+      responseAs[String] shouldEqual s"Vote submitted for '$name_2'"
     }
   }
 
-  val vote3 = InboundRequest(InBoundRequestType.InboundText, image_2, submitter2PhoneNumber, targetPhoneNumber )
+  val vote3 = InboundRequest(InBoundRequestType.InboundText, name_2, submitter2PhoneNumber, targetPhoneNumber)
   it should "save vote3 to the database" in {
-    Post("/event", vote3) ~> route  ~> check {
+    Post("/event", vote3) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"Vote submitted for '$image_2'"
+      responseAs[String] shouldEqual s"Vote submitted for '$name_2'"
     }
   }
 
   it should "now give us a report with image_2 in the lead and image_1 with 1 vote" in {
-    Get("/report", targetPhoneNumber) ~> route  ~> check {
+    Get("/report", targetPhoneNumber) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"""[["$image_2", 2], ["$image_1", 1]]"""
+      responseAs[String] shouldEqual s"""[["$name_2", 2], ["$name_1", 1]]"""
     }
   }
-
-
-
 
 
 }
