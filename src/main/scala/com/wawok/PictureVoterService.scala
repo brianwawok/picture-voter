@@ -38,6 +38,7 @@ import akka.http.scaladsl.server.Route
 
 import com.typesafe.config.ConfigFactory
 import com.wawok.Models._
+import slick.driver.H2Driver.api._
 import org.slf4j.LoggerFactory
 import spray.json._
 import akka.stream.{Materializer, ActorMaterializer}
@@ -47,8 +48,6 @@ import scala.concurrent.duration._
 
 
 trait Service extends JsonSupport with DatabaseService {
-  this: HasDatabase =>
-
 
   implicit val system: ActorSystem
   implicit def executor: ExecutionContextExecutor
@@ -86,7 +85,7 @@ trait Service extends JsonSupport with DatabaseService {
   }
 }
 
-object PictureVoterService extends App with Service with OnDiskDatabase {
+object PictureVoterService extends App with Service {
 
 
   override val logger = LoggerFactory.getLogger(this.getClass)
@@ -94,6 +93,7 @@ object PictureVoterService extends App with Service with OnDiskDatabase {
   implicit val system = ActorSystem("my-system")
   implicit val executor = system.dispatcher
   implicit val materializer = ActorMaterializer()
+  override val db = Database.forConfig("h2-disk-config")
 
   logger.info("Waiting for database server to continue starting....")
   Await.result(setup(), 5.minutes)

@@ -41,16 +41,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 
-trait HasDatabase {
-  val db : Database
-}
-
-trait OnDiskDatabase extends HasDatabase{
-  override val db = Database.forConfig("h2-disk-config")
-}
 
 trait DatabaseService {
-  this: HasDatabase =>
+
+  val db: Database
 
   val logger = LoggerFactory.getLogger(this.getClass)
 

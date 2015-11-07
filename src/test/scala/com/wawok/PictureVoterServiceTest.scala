@@ -51,15 +51,11 @@ class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRoute
 
 
 
-  trait InMemoryDatabase extends HasDatabase{
-    override val db = Database.forConfig("h2-test-config")
-  }
-
-
-  object serviceTest extends Service with InMemoryDatabase {
+  object serviceTest extends Service {
     implicit val system = ActorSystem("my-system")
     implicit val executor = system.dispatcher
     implicit val materializer = ActorMaterializer()
+    override val db = Database.forConfig("h2-test-config")
   }
 
   Await.result(serviceTest.setup(), 5.minutes)
