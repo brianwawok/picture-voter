@@ -59,6 +59,7 @@ Vote on an existing image:
 curl -X POST -H "Content-Type: application/json" -d '{ "type": "inboundText", 
 "payload": "7dd84d70-768b-492b-88f7-a6c70f2db2e9.jpg", "fromNumber": "+15551234567", "toNumber": "+15551234567" }
  http://localhost:8080/event ```
+```
 
 
 View a report of votes to pictures:
