@@ -32,7 +32,7 @@ http.interface | localhost
 http.port | 8080
 dropbox.host | https://api.dropboxapi.com
 dropbox.port | 443
-dropbox.folder | "pictures"
+dropbox.folder | pictures
 h2-disk-config.url | jdbc:h2:~/data/picture_voter
 h2-disk-config.driver | org.h2.Driver
 h2-disk-config.connectionPool | disabled
