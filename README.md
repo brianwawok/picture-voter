@@ -1,7 +1,13 @@
 #Picture voting application:
 
 ## Overview
-This is a simple picture voting application. You can send it a url to save, or the name of a picture to vote.
+This is a simple picture voting application. The users can interact in the following ways.
+
+* A user can send in a message via the /event api with a new picture. That message is saved to a shared dropbox folder that anyone can view.
+* A user can send in the name of the picture they like via the /event api, and that picture gets a 'vote' (only 1 vote per person per picture!)
+* A user can see a list of all votes via the /report api, to see how popular each picture was.
+
+
 It was mostly an exercise to try learning how Akka HTTP works.
 
 ## Running in test mode

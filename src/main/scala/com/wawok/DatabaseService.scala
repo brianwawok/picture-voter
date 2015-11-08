@@ -36,8 +36,8 @@ import com.wawok.Models._
 import org.slf4j.LoggerFactory
 import slick.driver.H2Driver.api._
 import slick.jdbc.meta.MTable
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
@@ -45,11 +45,11 @@ trait DatabaseService extends DatabaseSupport {
 
   val db: Database
 
-  val logger = LoggerFactory.getLogger(this.getClass)
+  private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
 
-  import Votes.votes
   import Pictures.pictures
+  import Votes.votes
 
 
   def setup(): Future[Unit] = {

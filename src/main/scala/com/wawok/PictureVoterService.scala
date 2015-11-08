@@ -33,16 +33,14 @@ package com.wawok
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
-
-import com.typesafe.config.ConfigFactory
+import akka.stream.{ActorMaterializer, Materializer}
 import com.wawok.Models._
-import slick.driver.H2Driver.api._
 import org.slf4j.LoggerFactory
+import slick.driver.H2Driver.api._
 import spray.json._
-import akka.stream.{Materializer, ActorMaterializer}
 
-import scala.concurrent.{ExecutionContextExecutor, Future, Await}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
 
 trait Service extends JsonSupport with DatabaseService with DropboxSaver {
@@ -120,10 +118,11 @@ trait Service extends JsonSupport with DatabaseService with DropboxSaver {
 
 }
 
-object PictureVoterService extends App with Service with RealDropboxSaver {
+//noinspection FieldFromDelayedInit
+object PictureVoterService extends App with Service with RealDropboxSaver with ConfigService {
 
 
-  override val logger = LoggerFactory.getLogger(this.getClass)
+  private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
   implicit val system = ActorSystem("my-system")
   implicit val executor = system.dispatcher
@@ -135,14 +134,11 @@ object PictureVoterService extends App with Service with RealDropboxSaver {
   Await.result(setup(), 5.minutes)
   logger.info("Database service successfully started!")
 
-  private[this] val config = ConfigFactory.load()
-  val interface = config.getString("http.interface")
-  val port = config.getInt("http.port")
 
 
-  val bindingFuture = Http().bindAndHandle(routes(), interface, port)
+  val bindingFuture = Http().bindAndHandle(routes(), INTERFACE, HTTP_PORT)
 
-  logger.info(s"Server online at http://$interface:$port/")
+  logger.info(s"Server online at http://$INTERFACE:$HTTP_PORT/")
   logger.info(s"Press <enter> to exit...")
   scala.io.StdIn.readLine() // for the future transformations
   bindingFuture

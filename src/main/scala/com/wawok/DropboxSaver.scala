@@ -35,7 +35,6 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.stream.Materializer
-import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
@@ -45,7 +44,11 @@ trait DropboxSaver {
 }
 
 
-trait RealDropboxSaver extends DropboxSaver {
+object RealDropboxSaver {
+  val SAVE_URL_PATH = "1/save_url/auto/"
+}
+
+trait RealDropboxSaver extends DropboxSaver with ConfigService {
 
   implicit val system: ActorSystem
 
@@ -53,18 +56,7 @@ trait RealDropboxSaver extends DropboxSaver {
 
   implicit val materializer: Materializer
 
-
-  val logger = LoggerFactory.getLogger(this.getClass)
-
-  private[this] val config = ConfigFactory.load()
-
-  lazy val dropboxToken = config.getString("dropbox.token")
-  val dropboxHost = config.getString("dropbox.host")
-  lazy val dropboxPort = config.getInt("dropbox.port")
-  lazy val dropboxFolder = config.getString("dropbox.folder")
-
-  val saveUrlPath = "1/save_url/auto/"
-
+  private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
   override def saveUrl(url: String): Future[Boolean] = {
 
@@ -72,9 +64,8 @@ trait RealDropboxSaver extends DropboxSaver {
     val fileName = url.split("/").last
 
 
-    val fullUrl = s"$dropboxHost/$saveUrlPath/$dropboxFolder/$fileName"
-    logger.debug(s"Full url: $fullUrl")
-    logger.debug(s"File name: $fileName")
+    val fullUrl = s"$DROPBOX_HOST/${RealDropboxSaver.SAVE_URL_PATH}/$DROPBOX_FOLDER/$fileName"
+    logger.debug(s"Full url: $fullUrl, name: $fileName")
 
     val entity = s"""url=$url"""
     logger.debug(s"Entity: $entity")
@@ -87,12 +78,15 @@ trait RealDropboxSaver extends DropboxSaver {
         ContentTypes.`application/x-www-form-urlencoded`,
         entity
       ),
-      headers = RawHeader("Authorization", s"Bearer $dropboxToken") :: Nil)
+      headers = RawHeader("Authorization", s"Bearer $DROPBOX_TOKEN") :: Nil)
     ).map(res => {
-
-      //TODO could return false if this didnt work
       logger.debug(s"****** Result=$res")
-      true
+      res.status match {
+        case StatusCodes.Success(code) =>
+          true
+        case _ =>
+          false
+      }
     })
 
 

@@ -26,25 +26,20 @@
 
 package com.wawok
 
+import com.typesafe.config.ConfigFactory
+
 /**
-  * Created by Brian Wawok on 11/6/2015.
+  * Created by Brian Wawok on 11/8/2015.
   */
+trait ConfigService {
+  private[this] lazy val config = ConfigFactory.load()
 
+  lazy val DROPBOX_TOKEN = config.getString("dropbox.token")
+  lazy val DROPBOX_HOST = config.getString("dropbox.host")
+  lazy val DROPBOX_PORT = config.getInt("dropbox.port")
+  lazy val DROPBOX_FOLDER = config.getString("dropbox.folder")
 
-import java.time.{LocalDateTime, ZoneOffset}
+  lazy val INTERFACE = config.getString("http.interface")
+  lazy val HTTP_PORT = config.getInt("http.port")
 
-import com.wawok.Models.PhoneNumber
-import slick.driver.H2Driver.api._
-
-trait DatabaseSupport {
-
-  implicit val localDateTimeColumnType = MappedColumnType.base[LocalDateTime, java.sql.Date](
-    ld => {new java.sql.Date(ld.toEpochSecond(ZoneOffset.UTC))},
-    d => { LocalDateTime.ofEpochSecond(d.getTime, 0, ZoneOffset.UTC)}
-  )
-
-  implicit val phoneNumberColumnType = MappedColumnType.base[PhoneNumber, String](
-    pn => pn.phoneNumber.toString,
-    s => new PhoneNumber(s)
-  )
 }
