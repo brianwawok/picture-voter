@@ -28,21 +28,41 @@ Other interesting command line parameters you want to override, and their defaul
 
 Parameter Key | Default Value
 --------------|----------------
-http.interface | "localhost"
+http.interface | localhost
 http.port | 8080
-dropbox.host | "https://api.dropboxapi.com"
+dropbox.host | https://api.dropboxapi.com
 dropbox.port | 443
 dropbox.folder | "pictures"
+h2-disk-config.url | jdbc:h2:~/data/picture_voter
+h2-disk-config.driver | org.h2.Driver
+h2-disk-config.connectionPool | disabled
+h2-disk-config.keepAliveConnection | true
 
+
+By default, a new H2 database will be initialized in the folder `~/data/picture_voter`, which translates to `/home/you/data` in unix or `C:/Users/you/data` in windows
 
 
 An example of requests you can send via commandline to the application are:
 
 Add a new image:
-`curl -X POST -H "Content-Type: application/json" --data '{ "type": "inboundMedia", "payload": "http://cdn.playbuzz.com/cdn/0079c830-3406-4c05-a5c1-bc43e8f01479/7dd84d70-768b-492b-88f7-a6c70f2db2e9.jpg", "fromNumber": "+15551234567", "toNumber": "+15551234567" }' http://localhost:8080/event `
 
-Vote on an existing image
-`curl -X POST -H "Content-Type: application/json" -d '{ "type": "inboundText", "payload": "7dd84d70-768b-492b-88f7-a6c70f2db2e9.jpg", "fromNumber": "+15551234567", "toNumber": "+15551234567" }' http://localhost:8080/event `
+'''
+curl -X POST -H "Content-Type: application/json" --data '{ "type": "inboundMedia", 
+"payload": "http://cdn.playbuzz.com/cdn/0079c830-3406-4c05-a5c1-bc43e8f01479/7dd84d70-768b-492b-88f7-a6c70f2db2e9.jpg", 
+"fromNumber": "+15551234567", "toNumber": "+15551234567" }' http://localhost:8080/event
+```
+
+
+Vote on an existing image:
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{ "type": "inboundText", 
+"payload": "7dd84d70-768b-492b-88f7-a6c70f2db2e9.jpg", "fromNumber": "+15551234567", "toNumber": "+15551234567" }
+ http://localhost:8080/event ```
+
 
 View a report of votes to pictures:
-`curl -X GET -H "Content-Type: application/json" -d '"+15551234567"' http://localhost:8080/report `
+
+```
+curl -X GET -H "Content-Type: application/json" -d '"+15551234567"' http://localhost:8080/report
+```
