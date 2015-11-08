@@ -10,6 +10,50 @@ This is a simple picture voting application. The users can interact in the follo
 
 It was mostly an exercise to try learning how Akka HTTP works.
 
+## Brief API overview
+
+Here is an overview of the simple api:
+
+### API Methods
+
+**Posting a new picture** 
+
+Posting a new picture is done via a post to `/event`
+
+This is the API you post to in order to add a new picture or cast a vote. Adding a new picture should be JSON in the format
+```
+{ "type": "inboundMedia", "payload": "http:/picture-url.jpg", "fromNumber": "+15551234567", "toNumber": "+15551234567" }
+```
+
+Where payload has the url of the image you want to save to dropbox, fromNumber is the phone number (leading +) of the vote caster,
+and toNumber is the phone number (leading+) of the server running the voting contest.
+
+**Voting for a picture**
+
+
+To vote for a new picture, you also post to `/event`
+
+This is adding your vote to an existing picture in the shared dropbox folder. It should be JSON in the format
+
+```
+{ "type": "inboundText", "payload": "picture-name.jpg", "fromNumber": "+15551234567", "toNumber": "+15551234567" }
+
+```
+
+Note that the picture name should match up with only the last part of the picture above. So for example if 
+a new picture is added via *http://my/path/cat.jpg*, you would just use *cat.jpg* to vote.
+
+** Running a report **
+
+To view a report of votes per picture, post to `/event` 
+
+You need to pass in 1 parameter, which is the *toNumber* used in the voting contest. For example:
+```
++15551234567
+```
+
+
+
 ## Running in test mode
 This is a normal SBT application. To fire up an embedded in-memory database and run all tests, you simply need to execute
 `sbt test`
@@ -22,25 +66,14 @@ The project uses the sbt assembly plugin. The target jar can br created with:
 Then to run the in prod made, you can execute
 `java -jar -Ddropbox.token="xxxxxxxxxxx" ./target/scala-2.11/PictureVoterService.jar"`
 
-Where XXXXXXXXXX is your dropbox token.  
+Where xxxxxxxxxxx is your dropbox API token token. For information about your dropbox token, see
 
-Other interesting command line parameters you want to override, and their default values:
-
-Parameter Key | Default Value
---------------|----------------
-http.interface | localhost
-http.port | 8080
-dropbox.host | https://api.dropboxapi.com
-dropbox.port | 443
-dropbox.folder | pictures
-h2-disk-config.url | jdbc:h2:~/data/picture_voter
-h2-disk-config.driver | org.h2.Driver
-h2-disk-config.connectionPool | disabled
-h2-disk-config.keepAliveConnection | true
+> https://blogs.dropbox.com/developers/2014/05/generate-an-access-token-for-your-own-account/
 
 
-By default, a new H2 database will be initialized in the folder `~/data/picture_voter`, which translates to `/home/you/data` in unix or `C:/Users/you/data` in windows
 
+
+## Making manual requests via curl
 
 An example of requests you can send via commandline to the application are:
 
@@ -67,3 +100,25 @@ View a report of votes to pictures:
 ```
 curl -X GET -H "Content-Type: application/json" -d '"+15551234567"' http://localhost:8080/report
 ```
+
+
+## Configuration override
+
+Other interesting command line parameters you want to override, and their default values:
+
+Config Key | Default Value
+--------------|----------------
+http.interface | localhost
+http.port | 8080
+dropbox.host | https://api.dropboxapi.com
+dropbox.port | 443
+dropbox.folder | pictures
+h2-disk-config.url | jdbc:h2:~/data/picture_voter
+h2-disk-config.driver | org.h2.Driver
+h2-disk-config.connectionPool | disabled
+h2-disk-config.keepAliveConnection | true
+
+
+By default, a new H2 database will be initialized in the folder `~/data/picture_voter`, which translates to `/home/you/data` in unix or `C:/Users/you/data` in windows
+
+
