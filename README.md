@@ -53,15 +53,26 @@ You need to pass in 1 parameter, which is the *toNumber* used in the voting cont
 ```
 
 
+## Running the application
 
-## Running in test mode
+### Requirements
+
+To compile and run the application, you need to have a *Java JDK 8* and *SBT 0.13.9* installed and available at the command line.
+
+Java JDK 8 can be found at
+> http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+
+SBT 0.13.9 can be found at:
+> http://www.scala-sbt.org/download.html
+
+### Running in test mode
 This is a normal SBT application. To fire up an embedded in-memory database and run all tests, you simply need to execute
 `sbt test`
 from the root directory. When the tests are over, the in memory database will go away. The tests walk through a basic
 workflow of adding some pictures and voting for them. At this time, no DropBox functionality is exercised in the test
 suite.
 
-## Running in prod mode
+### Running in prod mode
 The project uses the sbt assembly plugin. The target jar can be created with:
 `sbt clean assembly`
 
@@ -69,7 +80,10 @@ The default configurations can be used for all properties except for DropBox tok
 must be specified at server launch time.
 
 Then to run the in prod made, you can execute
-`java -jar -Ddropbox.token="xxxxxxxxxxx" ./target/scala-2.11/PictureVoterService.jar"`
+
+```
+java -jar -Ddropbox.token="xxxxxxxxxxx" ./target/scala-2.11/PictureVoterService.jar"
+```
 
 Where *xxxxxxxxxxx* is your DropBox API token token. For information about your DropBox token, see
 
@@ -124,6 +138,7 @@ h2-disk-config.connectionPool | disabled
 h2-disk-config.keepAliveConnection | true
 
 
-By default, a new H2 database will be initialized in the folder `~/data/picture_voter`, which translates to `/home/you/data` in unix or `C:/Users/you/data` in windows
+By default, a new H2 database will be initialized in the folder `~/data/picture_voter`,
+ which translates to `/home/you/data` in Linux/OSX or `C:/Users/you/data` in Windows
 
 
