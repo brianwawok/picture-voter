@@ -43,7 +43,7 @@ This is adding your vote to an existing picture in the shared dropbox folder. It
 Note that the picture name should match up with only the last part of the picture above. So for example if 
 a new picture is added via *http://my/path/cat.jpg*, you would just use *cat.jpg* to vote.
 
-** Running a report **
+**Running a report**
 
 To view a report of votes per picture, post to `/event` 
 
@@ -57,16 +57,21 @@ You need to pass in 1 parameter, which is the *toNumber* used in the voting cont
 ## Running in test mode
 This is a normal SBT application. To fire up an embedded in-memory database and run all tests, you simply need to execute
 `sbt test`
-from the root directory. When the tests are over, the in memory database will go away.
+from the root directory. When the tests are over, the in memory database will go away. The tests walk through a basic
+workflow of adding some pictures and voting for them. At this time, no DropBox functionality is exercised in the test
+suite.
 
 ## Running in prod mode
-The project uses the sbt assembly plugin. The target jar can br created with:
+The project uses the sbt assembly plugin. The target jar can be created with:
 `sbt clean assembly`
+
+The default configurations can be used for all properties except for DropBox token. The DropBox token
+must be specified at server launch time.
 
 Then to run the in prod made, you can execute
 `java -jar -Ddropbox.token="xxxxxxxxxxx" ./target/scala-2.11/PictureVoterService.jar"`
 
-Where xxxxxxxxxxx is your dropbox API token token. For information about your dropbox token, see
+Where *xxxxxxxxxxx* is your DropBox API token token. For information about your DropBox token, see
 
 > https://blogs.dropbox.com/developers/2014/05/generate-an-access-token-for-your-own-account/
 
