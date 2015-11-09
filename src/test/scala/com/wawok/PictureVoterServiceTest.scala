@@ -94,8 +94,7 @@ class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRoute
 
   it should "our initial report should be an empty json string" in {
     Get("/report", targetPhoneNumber) ~> route ~> check {
-      handled shouldBe true
-      responseAs[String] shouldEqual "[]"
+      responseAs[String] shouldEqual "{\n\n}"
     }
   }
 
@@ -118,7 +117,7 @@ class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRoute
   it should "still give us a blank report without any votes cast" in {
     Get("/report", targetPhoneNumber) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual "[]"
+      responseAs[String] shouldEqual "{\n\n}"
     }
   }
 
@@ -133,7 +132,7 @@ class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRoute
   it should "now give us a report with image_1 in the lead" in {
     Get("/report", targetPhoneNumber) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"""[["$name_1", 1]]"""
+      responseAs[String] shouldEqual s"""{\n  "$name_1": 1\n}"""
     }
   }
 
@@ -172,7 +171,7 @@ class PictureVoterServiceTest extends FlatSpec with Matchers with ScalatestRoute
   it should "now give us a report with image_2 in the lead and image_1 with 1 vote" in {
     Get("/report", targetPhoneNumber) ~> route ~> check {
       handled shouldBe true
-      responseAs[String] shouldEqual s"""[["$name_2", 2], ["$name_1", 1]]"""
+      responseAs[String] shouldEqual s"""{\n  "$name_2": 2,\n  "$name_1": 1\n}"""
     }
   }
 

@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory
 import slick.driver.H2Driver.api._
 import slick.jdbc.meta.MTable
 
+import scala.collection.immutable.ListMap
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -81,7 +82,7 @@ trait DatabaseService extends DatabaseSupport {
   and p.target_phone = ?
   order by count(*) desc
 */
-  def getAllVoteCounts(targetPhone: PhoneNumber): Future[Seq[(String, Int)]] = {
+  def getAllVoteCounts(targetPhone: PhoneNumber): Future[Map[String, Int]] = {
     db.run(
       (for {
         v <- votes.filter(_.targetPhone === targetPhone)
@@ -94,7 +95,7 @@ trait DatabaseService extends DatabaseSupport {
           (name, list.length)
       }.sortBy(_._2.desc)
         .result
-    )
+    ).map(v => ListMap.empty ++ v)
   }
 
 
